@@ -105,7 +105,9 @@ async def score_submit_handler(req: Request) -> str:
         ) if prev_db else None
 
     debug("Submitting score...")
-    await s.submit()
+    await s.submit(
+        restricted= privs & Privileges.USER_PUBLIC == 0
+    )
 
     debug("Incrementing bmap playcount.")
     await s.bmap.increment_playcount(s.passed)
@@ -123,7 +125,7 @@ async def score_submit_handler(req: Request) -> str:
 
     if s.passed and s.bmap.has_leaderboard:
         if s.bmap.status == Status.RANKED: stats.ranked_score += add_score   
-        if (stats.max_combo or 0) < s.max_combo: stats.max_combo = s.max_combo
+        if stats.max_combo < s.max_combo: stats.max_combo = s.max_combo
         if s.completed == Completed.BEST and s.pp:
             debug("Performing PP recalculation.")
             await stats.recalc_pp_acc_full(s.pp)
@@ -197,7 +199,7 @@ async def score_submit_handler(req: Request) -> str:
         __pair_panel("pp", "", "")
     )
 
-    url = req.path.split("/")[2]
+    url = f"{conf.srv_url}/beatmaps/{s.bmap.id}"
     if s.bmap.has_leaderboard:
         # Beatmap ranking panel.
         panels.append("|".join((
